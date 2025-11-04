@@ -2,7 +2,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { userModel } from "../Models/user.model.js";
 import { generateAccessAndRefereshTokens } from "../middlewares/auth.js";
 
-const userSignUp = asyncHandler(async (req, res) => {
+// =======================
+// USER REGISTRATION
+// =======================
+const registerUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
   console.log(req.body);
@@ -14,43 +17,46 @@ const userSignUp = asyncHandler(async (req, res) => {
     });
   }
 
-  let userExists = await userModel.findOne({ email });
+  const existingUser = await userModel.findOne({ email });
 
-  if (userExists) {
+  if (existingUser) {
     return res.status(409).json({
       success: false,
-      message: "User already exists. Try new email",
+      message: "User already exists. Try a new email",
     });
   }
 
-  let createdUser = await userModel.create({
+  const newUser = await userModel.create({
     username,
     email,
     password,
   });
 
-  let user = await userModel
-    .findById(createdUser._id)
+  const savedUser = await userModel
+    .findById(newUser._id)
     .select("-password -refreshToken");
 
-  if (!user) {
+  if (!savedUser) {
     return res.status(409).json({
       success: false,
-      message: "Something went wrong with SignUp. Try again",
+      message: "Something went wrong during registration. Try again",
     });
   }
 
   return res.status(200).json({
     success: true,
-    data: user,
+    data: savedUser,
     message: "User registered successfully",
   });
 });
 
-const userLogin = asyncHandler(async (req, res) => {
+// =======================
+// USER LOGIN
+// =======================
+const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  if (email == "" || password == "") {
+  if (!email || !password) {
     return res.status(400).json({
       success: false,
       message: "Both fields are required",
@@ -61,15 +67,15 @@ const userLogin = asyncHandler(async (req, res) => {
   if (!user) {
     return res.status(400).json({
       success: false,
-      message: "Wrong Email",
+      message: "Invalid email",
     });
   }
 
-  const passIsCorrect = await user.isPasswordCorrect(password);
-  if (!passIsCorrect) {
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (!isPasswordValid) {
     return res.status(400).json({
       success: false,
-      message: "Incorrect Password",
+      message: "Incorrect password",
     });
   }
 
@@ -102,9 +108,12 @@ const userLogin = asyncHandler(async (req, res) => {
   });
 });
 
+// =======================
+// USER LOGOUT
+// =======================
 const logoutUser = asyncHandler(async (req, res) => {
-  console.log("lpogout called");
-  
+  console.log("Logout called");
+
   await userModel.findByIdAndUpdate(
     req.user._id,
     {
@@ -113,12 +122,12 @@ const logoutUser = asyncHandler(async (req, res) => {
     { new: true }
   );
 
-  const options = {
+  const cookieOptions = {
     httpOnly: true,
     secure: true,
   };
 
-  res.clearCookie("accessToken", options).clearCookie("refreshToken", options);
+  res.clearCookie("accessToken", cookieOptions).clearCookie("refreshToken", cookieOptions);
 
   return res.status(200).json({
     success: true,
@@ -126,15 +135,21 @@ const logoutUser = asyncHandler(async (req, res) => {
   });
 });
 
-const check = asyncHandler(async (req, res) => {
+// =======================
+// TOKEN VERIFICATION
+// =======================
+const verifyUser = asyncHandler(async (req, res) => {
   return res.status(200).json({
-    message: "Verified",
+    message: "User verified",
     success: true,
     data: req.user,
   });
 });
 
-const changePassword = asyncHandler(async (req, res) => {
+// =======================
+// CHANGE PASSWORD
+// =======================
+const updatePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   if (!currentPassword || !newPassword) {
@@ -152,11 +167,11 @@ const changePassword = asyncHandler(async (req, res) => {
     });
   }
 
-  const isCorrect = await user.isPasswordCorrect(currentPassword);
-  if (!isCorrect) {
+  const isCurrentPasswordValid = await user.isPasswordCorrect(currentPassword);
+  if (!isCurrentPasswordValid) {
     return res.status(401).json({
       success: false,
-      message: "Wrong password",
+      message: "Current password is incorrect",
     });
   }
 
@@ -169,4 +184,4 @@ const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
-export { userSignUp, userLogin, logoutUser, changePassword, check };
+export { registerUser, loginUser, logoutUser, updatePassword, verifyUser };

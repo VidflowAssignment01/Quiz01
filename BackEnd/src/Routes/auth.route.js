@@ -1,19 +1,18 @@
 import express from "express";
 import {
-  userSignUp,
-  userLogin,
+  registerUser,
+  loginUser,
   logoutUser,
-  changePassword,
-  check
+  updatePassword,
+  verifyUser
 } from "../Controllers/auth.controller.js";
-import { auth } from "../Middlewares/auth.js";
-
+import { auth } from "../middlewares/auth.js";
 const AuthRouter = express.Router();
 
-AuthRouter.post("/signup", userSignUp);
-AuthRouter.post("/login", userLogin);
-AuthRouter.post("/logout",auth, logoutUser);
-AuthRouter.get("/check",auth, check);
-AuthRouter.post("/change-password",auth, changePassword);
+AuthRouter.post("/signup", registerUser);
+AuthRouter.post("/login", loginUser);
+AuthRouter.post("/logout", auth, logoutUser);
+AuthRouter.get("/check", auth, verifyUser);
+AuthRouter.post("/change-password", auth, updatePassword);
 
 export { AuthRouter };
